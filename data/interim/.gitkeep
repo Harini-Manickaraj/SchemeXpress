@@ -1,0 +1,2 @@
+# Preserves data/interim/ in Git.
+# This directory holds intermediate transformation artifacts between pipeline steps.

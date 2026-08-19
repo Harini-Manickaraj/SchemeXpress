@@ -1,0 +1,9 @@
+# This file exists solely to preserve the data/raw/ directory in Git.
+# Git does not track empty directories.
+#
+# Place your Kaggle dataset here:
+#   data/raw/schemes.csv
+#
+# This directory is in .gitignore for *.csv files.
+# The dataset is NOT committed to the repository.
+# Download it from Kaggle and place it here manually.

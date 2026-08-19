@@ -1,0 +1,21 @@
+/*
+ * static/css/style.css
+ * ====================
+ * SchemeXpress — Main Stylesheet
+ *
+ * This file will be fully built in Phase 12 (Frontend).
+ * For now it is a placeholder that confirms the static file
+ * pipeline is working.
+ *
+ * Architecture note:
+ *   All CSS lives in this single file for simplicity.
+ *   If the stylesheet grows very large in Phase 12, we can
+ *   split it into: base.css, components.css, pages.css.
+ *   For now, one file is cleaner and easier to navigate.
+ *
+ * Visual reference: https://harini-manickaraj.github.io/summer_intern_1/
+ * The design language, background, and color palette from this
+ * reference will be implemented in Phase 12.
+ */
+
+/* Phase 12 — Full implementation coming */

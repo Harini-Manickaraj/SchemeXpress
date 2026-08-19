@@ -1,0 +1,2 @@
+# Preserves static/js/ in Git.
+# JavaScript is used only where HTML/CSS genuinely cannot accomplish a feature.
