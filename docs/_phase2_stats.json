@@ -1,0 +1,85 @@
+{
+  "raw_rows": 3400,
+  "raw_cols": 11,
+  "clean_rows": 3397,
+  "clean_cols": 11,
+  "clean_columns": [
+    "scheme_name",
+    "slug",
+    "details",
+    "benefits",
+    "eligibility",
+    "application",
+    "documents",
+    "level",
+    "schemeCategory",
+    "tags",
+    "combined_text"
+  ],
+  "level_dist": {
+    "State": 2856,
+    "Central": 541
+  },
+  "top15_categories": {
+    "Social Welfare & Empowerment": 641,
+    "Education & Learning": 557,
+    "Agriculture,Rural & Environment": 384,
+    "Business & Entrepreneurship": 332,
+    "Social Welfare & Empowerment, Women And Child": 149,
+    "Health & Wellness": 100,
+    "Skills & Employment": 94,
+    "Education & Learning, Social Welfare & Empowerment": 75,
+    "Banking,Financial Services And Insurance": 58,
+    "Housing & Shelter": 47,
+    "Education & Learning, Women And Child": 46,
+    "Sports & Culture": 46,
+    "Social Welfare & Empowerment, Education & Learning": 33,
+    "Banking,Financial Services And Insurance, Business & Entrepreneurship": 33,
+    "Health & Wellness, Social Welfare & Empowerment": 31
+  },
+  "text_length_stats": {
+    "details": {
+      "count": 3397,
+      "min": 109,
+      "median": 566,
+      "mean": 789,
+      "max": 8629
+    },
+    "benefits": {
+      "count": 3397,
+      "min": 8,
+      "median": 295,
+      "mean": 508,
+      "max": 16908
+    },
+    "eligibility": {
+      "count": 3397,
+      "min": 26,
+      "median": 477,
+      "mean": 650,
+      "max": 9135
+    },
+    "application": {
+      "count": 3397,
+      "min": 13,
+      "median": 936,
+      "mean": 1146,
+      "max": 11319
+    },
+    "documents": {
+      "count": 3397,
+      "min": 11,
+      "median": 316,
+      "mean": 472,
+      "max": 8121
+    },
+    "combined_text": {
+      "count": 3397,
+      "min": 512,
+      "median": 1619,
+      "mean": 2102,
+      "max": 20498
+    }
+  },
+  "tag_count": 3397
+}

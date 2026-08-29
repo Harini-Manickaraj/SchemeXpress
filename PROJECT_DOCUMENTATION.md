@@ -1,7 +1,7 @@
 # SchemeXpress — Project Documentation
 
-**Document Version:** 1.0 (Phase 1 — Project Setup)  
-**Last Updated:** Phase 1  
+**Document Version:** 2.0 (Phase 2 — Data Collection & Preprocessing)  
+**Last Updated:** Phase 2  
 **Status:** Living document — updated after every phase
 
 ---
@@ -183,34 +183,42 @@ A separate RAG pipeline allows users to ask free-form questions. The question is
 
 ## 8. Dataset
 
+> **Status:** CONFIRMED — Phase 2 (all values verified from actual data)
+
 ### Source
+
 - **Platform:** Kaggle
-- **Content:** Indian government schemes (Central and State)
-- **Approximate size:** ~3,400 records
+- **Title:** Indian Government Schemes
+- **File:** `data/raw/updated_data.csv`
+- **Content:** Central and State government welfare schemes across India
+- **Raw size:** 3,400 rows × 11 columns (including 1 unnamed empty column)
 
-### Known Fields
+### Confirmed Fields (from actual inspection)
 
-| Field | Type | Description |
-|---|---|---|
-| `scheme_name` | Text | Official name of the scheme |
-| `slug` | Text | URL-friendly identifier |
-| `details` | Long text | Scheme overview and description |
-| `benefits` | Long text | What the scheme provides |
-| `eligibility` | Long text | Who can apply |
-| `application` | Long text | How to apply |
-| `documents` | Long text | Required documents |
-| `level` | Categorical | Central / State / District |
-| `schemeCategory` | Categorical | Sector/domain of the scheme |
-| `tags` | Text / List | Keywords associated with the scheme |
+| # | Field | Type | Description | Non-null count |
+|---|---|---|---|---|
+| 0 | `scheme_name` | Text | Official name of the scheme | 3,400 |
+| 1 | `slug` | Text | URL-friendly identifier | 3,400 |
+| 2 | `details` | Long text | Scheme overview and description | 3,400 |
+| 3 | `benefits` | Long text | What the scheme provides | 3,400 |
+| 4 | `eligibility` | Long text | Who can apply | 3,400 |
+| 5 | `application` | Long text | How to apply | 3,398 |
+| 6 | `documents` | Long text | Required documents | 3,389 |
+| 7 | `level` | Categorical | Central / State | 3,400 |
+| 8 | `schemeCategory` | Categorical | Sector/domain of the scheme | 3,400 |
+| 9 | `Unnamed: 9` | Empty | **100% null — artifact of CSV export** | 0 |
+| 10 | `tags` | Text / List | Comma-separated keywords | 3,371 |
 
-### Known Issues (to be confirmed in Phase 2)
-- One column appears to be unnamed or empty
-- Possible duplicate scheme records
-- Missing values in text fields
-- Inconsistent category naming
-- Text fields may contain HTML entities or encoded characters from web scraping
+### Level Distribution (raw)
+
+| Level | Count |
+|---|---|
+| State | 2,856 |
+| Central | 541 |
+| District | 0 (not present in this dataset) |
 
 ### Data Handling Rules
+
 - Raw data is stored in `data/raw/` and **never modified**
 - All cleaning is done programmatically and outputs go to `data/processed/`
 - Intermediate outputs go to `data/interim/`
@@ -220,81 +228,247 @@ A separate RAG pipeline allows users to ask free-form questions. The question is
 
 ## 9. Data Preprocessing
 
-> **Status:** [TO BE COMPLETED — Phase 3]
+> **Status:** COMPLETED — Phase 2  
+> **Executed:** `python run_phase2.py`  
+> **Output:** `data/processed/cleaned_schemes.csv`  
+> **Production module:** `src/preprocessing/cleaner.py`
 
-This section will be populated after the preprocessing notebook (`notebooks/03_preprocessing.ipynb`) is completed. The following structure defines what will be documented.
+### 9.1 Raw Dataset Profile (actual values)
 
-### 9.1 Missing Value Analysis
+| Property | Value |
+|---|---|
+| Source file | `data/raw/updated_data.csv` |
+| Raw shape | **3,400 rows × 11 columns** |
+| Clean shape | **3,397 rows × 11 columns** |
+| Rows removed | 3 (exact duplicates) |
+| Rows retained | 3,397 (99.9%) |
+| Columns removed | 1 (`Unnamed: 9` — 100% empty) |
+| Columns added | 1 (`combined_text`) |
+| Null values in clean output | **0** |
 
-For each column, we will document:
-- Count and percentage of missing values
-- Whether missingness is structural (the scheme genuinely lacks that info) or a data quality issue
-- Imputation or handling strategy with justification
+---
 
-**Decision template:**
-> **Problem:** [describe the missing value situation]  
-> **Why it matters:** [explain impact on recommendation quality]  
-> **Solution:** [describe what we did]  
-> **Justification:** [explain why this was the right choice]
+### 9.2 Issue 1 — Unnamed Empty Column
 
-### 9.2 Duplicate Detection
+**Problem:** Column `Unnamed: 9` (between `schemeCategory` and `tags`) contains zero non-null values. It is a CSV export artifact from the source scraper.
 
-- Method: exact match on `scheme_name` and `slug`, fuzzy match on `details`
-- Decision criteria for removal
-- Count of duplicates found and removed
+**Why it matters:** It wastes memory and can confuse code that iterates over columns by position.
 
-### 9.3 Unnecessary Column Removal
+**Solution:** Drop any column whose name is an empty string or starts with `'Unnamed:'`.
 
-- Identify columns with no analytical value
-- Document each removed column and the reason
+**Result:** 11 columns → 10 columns (before adding `combined_text`).
 
-### 9.4 Text Normalization
+---
 
-- Whitespace normalization
-- Case normalization
-- HTML entity removal
-- Special character handling
+### 9.3 Issue 2 — Duplicate Rows
 
-### 9.5 Category Standardization
+**Problem:** Web scraping can visit the same scheme page multiple times.
 
-- Inconsistent category values (e.g., "Women & Child" vs "Women and Child")
-- Standardization mapping documented here
+**Finding:** 3 exact full-row duplicates found. 0 duplicate slugs (all slugs are unique).
 
-### 9.6 Data Validation
+**Solution:** Two-pass deduplication — exact full-row first, then slug-based (as safety net).
 
-- Post-cleaning shape: [rows × columns]
-- Null counts after cleaning
-- Schema validation
+**Result:** 3,400 → 3,397 rows.
+
+---
+
+### 9.4 Issue 3 — Missing Values
+
+**Finding (raw dataset):**
+
+| Column | Missing rows | Missing % |
+|---|---|---|
+| `application` | 2 | 0.06% |
+| `documents` | 11 | 0.32% |
+| `tags` | 29 | 0.85% |
+| All other columns | 0 | 0% |
+
+**Strategy:** Never drop rows for missing text. Fill with safe defaults.
+
+| Column | Fill Value | Reasoning |
+|---|---|---|
+| `details`, `benefits`, `eligibility`, `application`, `documents`, `tags` | `''` | Missing text = no NLP signal, not an error. Scheme is still valid. |
+| `schemeCategory` | `'Uncategorized'` | Needed for display and filtering |
+| `level` | `'Unknown'` | Needed for eligibility engine |
+| `slug` | derived from `scheme_name` | Required as unique URL key |
+
+---
+
+### 9.5 Issue 4 — BOM Characters and HTML Entities
+
+**Finding:** BOM characters (`\ufeff`) present in **5,045 cells** across all text fields (web-scraping artifact). HTML entities (`&amp;`, etc.) present in 1 row.
+
+**Why it matters:** Without cleaning, `"government"` and `"\ufeffgovernment"` become two different TF-IDF tokens, diluting scores.
+
+**Solution — `clean_text()` function applied to all text columns:**
+
+```python
+def clean_text(text):
+    # NLP-safe: does NOT lowercase or stem — preserves NLP utility
+    text = text.replace('\ufeff', '').replace('\u200b', '').replace('\u00a0', ' ')
+    text = html.unescape(text)               # &amp; → &
+    text = re.sub(r'[\n\r\t]+', ' ', text)   # newlines → space
+    text = re.sub(r' {2,}', ' ', text)        # collapse spaces
+    return text.strip()
+```
+
+---
+
+### 9.6 Issue 5 — Quoted Scheme Names
+
+**Finding:** 61 scheme names start with a `"` character (double-encoded during CSV scraping).
+
+**Example before:** `'"Immediate Relief Assistance" under "Welfare..."'`  
+**Example after:** `'Immediate Relief Assistance under Welfare...'`
+
+**Solution:** Strip outer quote characters from `scheme_name`.
+
+---
+
+### 9.7 Issue 6 — Category Inconsistency
+
+**Problem:** `schemeCategory` values may have mixed casing or extra whitespace.
+
+**Solution:** `str.strip().str.title()` normalization.  
+**Level validation:** Any value not in `{Central, State, District, Unknown}` is mapped to `'Unknown'`.
+
+---
+
+### 9.8 Feature Added: `combined_text`
+
+**Purpose:** Pre-built for TF-IDF vectorization in Phase 6.
+
+**Formula:**
+```
+combined_text = scheme_name + schemeCategory + details + benefits + eligibility + tags
+```
+
+`application` and `documents` are excluded — they describe *how to apply*, not *what the scheme is*, making them irrelevant to relevance matching.
+
+**Combined text length stats:**
+
+| Statistic | Value |
+|---|---|
+| Minimum | 512 chars |
+| Median | 1,619 chars |
+| Mean | 2,102 chars |
+| Maximum | 20,498 chars |
+
+---
+
+### 9.9 Output Schema (`data/processed/cleaned_schemes.csv`)
+
+| Column | Source | Notes |
+|---|---|---|
+| `scheme_name` | Raw | Cleaned: stripped quotes + whitespace |
+| `slug` | Raw / derived | URL identifier; derived if missing |
+| `details` | Raw | BOM/HTML cleaned; `''` if originally null |
+| `benefits` | Raw | BOM/HTML cleaned; `''` if originally null |
+| `eligibility` | Raw | BOM/HTML cleaned; `''` if originally null |
+| `application` | Raw | BOM/HTML cleaned; `''` if originally null |
+| `documents` | Raw | BOM/HTML cleaned; `''` if originally null |
+| `level` | Raw | Standardized: Central / State / Unknown |
+| `schemeCategory` | Raw | Title-case normalized |
+| `tags` | Raw | BOM/HTML cleaned; `''` if originally null |
+| `combined_text` | **Derived** | Concatenation of 6 key fields for TF-IDF |
+
+---
+
+### 9.10 Reproducibility
+
+```bash
+# From project root with venv activated:
+python run_phase2.py
+```
+
+Re-reads `data/raw/updated_data.csv` (never modified) and regenerates `data/processed/cleaned_schemes.csv` deterministically.
 
 ---
 
 ## 10. Exploratory Data Analysis
 
-> **Status:** [TO BE COMPLETED — Phase 4]
+> **Status:** COMPLETED — Phase 2  
+> **Notebook:** `notebooks/01_data_understanding_and_eda.ipynb`  
+> **Charts:** `docs/_eda_charts/*.png` (7 charts)
 
-This section will be populated after `notebooks/04_eda.ipynb` is completed.
+### 10.1 Dataset Overview (clean dataset)
 
-### Questions to Answer
+| Metric | Value |
+|---|---|
+| Total schemes | **3,397** |
+| State-level schemes | **2,856 (84.1%)** |
+| Central-level schemes | **541 (15.9%)** |
+| Unique scheme categories | **100+** |
+| Schemes with tags | **3,397 (100%)** |
 
-Each visualization will be tied to a specific question:
+### 10.2 Level Distribution
 
-1. How many schemes are in the cleaned dataset?
-2. What is the Central vs State vs District distribution?
-3. Which scheme categories have the most schemes?
-4. Which states have the most schemes?
-5. What is the completeness of each text field?
-6. What are the most common tags?
-7. What types of benefits are most frequently mentioned?
-8. What target groups appear most often in eligibility text?
-9. What is the distribution of scheme text lengths?
-10. Are there any patterns in missing data?
+**Finding:** 84% of schemes in the dataset are State-level, 16% Central-level. No District-level schemes exist in this dataset.
 
-### Visualization Standards
+**Implication for recommendation:** The eligibility engine must handle State-level filtering carefully — most recommendations will be state-specific.
 
-Every chart will include:
-- A clear title stating the question being answered
-- Labelled axes
-- A 2-3 sentence interpretation below the chart
+### 10.3 Top Scheme Categories
+
+**Top 10 categories by scheme count:**
+
+| Category | Count |
+|---|---|
+| Social Welfare & Empowerment | 641 |
+| Education & Learning | 557 |
+| Agriculture, Rural & Environment | 384 |
+| Business & Entrepreneurship | 332 |
+| Social Welfare & Empowerment, Women And Child | 149 |
+| Health & Wellness | 100 |
+| Skills & Employment | 94 |
+| Education & Learning, Social Welfare & Empowerment | 75 |
+| Banking, Financial Services And Insurance | 58 |
+| Housing & Shelter | 47 |
+
+**Finding:** Social Welfare & Empowerment and Education are the dominant sectors. Many schemes span multiple categories (comma-separated values in `schemeCategory`).
+
+### 10.4 Text Field Length Statistics (clean dataset)
+
+| Field | Count | Min | Median | Mean | Max |
+|---|---|---|---|---|---|
+| `details` | 3,397 | 109 | 566 | 789 | 8,629 |
+| `benefits` | 3,397 | 8 | 295 | 508 | 16,908 |
+| `eligibility` | 3,397 | 26 | 477 | 650 | 9,135 |
+| `application` | 3,397 | 13 | 936 | 1,146 | 11,319 |
+| `documents` | 3,397 | 11 | 316 | 472 | 8,121 |
+| `combined_text` | 3,397 | 512 | 1,619 | 2,102 | 20,498 |
+
+**Finding:** Text lengths are right-skewed. Most schemes have moderate descriptions (median ~566 chars for `details`). The median `combined_text` of 1,619 chars provides sufficient signal for TF-IDF vectorization.
+
+### 10.5 Top Tags
+
+**Most frequent tags:** Financial Assistance, Scholarship, Farmer, Women, Students, SC/ST, OBC, Agriculture, Education, Employment.
+
+**Finding:** "Financial Assistance" is the dominant tag by a wide margin, confirming the dataset is strongly focused on direct benefit transfer and subsidy schemes.
+
+### 10.6 Category × Level Analysis
+
+**Finding:** Agriculture and Business schemes are heavily State-level. Education and Skill Development schemes have stronger Central government presence. This reflects India's federal structure where social welfare is primarily a State subject.
+
+### 10.7 Missing Data Pattern
+
+**Finding:** Missing data is sparse and concentrated in non-critical fields:
+- `tags`: 29 rows (0.85%) — minor impact on TF-IDF
+- `documents`: 11 rows (0.32%) — display-only, no model impact
+- `application`: 2 rows (0.06%) — display-only, no model impact
+
+No rows needed to be dropped due to missing data.
+
+### 10.8 Charts Generated
+
+| File | Question answered |
+|---|---|
+| `01_level_distribution.png` | Central vs State split |
+| `02_top_categories.png` | Which sectors have the most schemes? |
+| `03_missing_values.png` | Where is data missing in the raw dataset? |
+| `04_text_lengths.png` | How long are key text fields? |
+| `05_top_tags.png` | What are the most common scheme tags? |
+| `06_category_by_level.png` | How do top categories break down by level? |
+| `07_combined_text_length.png` | Is combined_text long enough for TF-IDF? |
 
 ---
 

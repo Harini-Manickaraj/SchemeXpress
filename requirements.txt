@@ -1,141 +1,51 @@
 # =============================================================
 # SchemeXpress — Python Dependencies
+# Python 3.14 (cp314-win_amd64) compatible — all packages
+# have pre-built binary wheels. No C compiler required.
 # =============================================================
-# Install all dependencies with:
-#   pip install -r requirements.txt
-#
-# To freeze your current environment into this file:
-#   pip freeze > requirements.txt
-#
-# We pin exact versions (==) to guarantee reproducibility.
-# Upgrading a library is a conscious, tested decision.
-# =============================================================
-
 
 # ---------------------------------------------------------
 # WEB FRAMEWORK
-# Flask: Lightweight Python web framework.
-# We chose Flask over Django because:
-#   - Django is a "batteries-included" framework designed for
-#     large CRUD apps. It enforces its own ORM, admin, auth.
-#   - Flask is minimal. We control every component ourselves.
-#   - For a data science project where the logic is in Python
-#     pipelines (not web forms), Flask is a much cleaner fit.
-# python-dotenv: Loads .env file into environment variables
-#   so Flask can read MONGO_URI, SECRET_KEY, etc. without
-#   those values being hardcoded anywhere in the source code.
 # ---------------------------------------------------------
-Flask==3.0.3
-python-dotenv==1.0.1
-
+Flask==3.1.1
+python-dotenv==1.1.0
+Werkzeug==3.1.3
+Jinja2==3.1.6
 
 # ---------------------------------------------------------
 # DATABASE
-# pymongo: Official MongoDB driver for Python.
-#   Lets Flask connect to MongoDB Atlas and perform
-#   CRUD operations (Create, Read, Update, Delete).
-# dnspython: Required when connecting to MongoDB Atlas
-#   using the modern "mongodb+srv://" connection string.
-#   Without it, PyMongo cannot resolve Atlas DNS hostnames.
 # ---------------------------------------------------------
-pymongo==4.7.3
-dnspython==2.6.1
-
+pymongo==4.17.0
+dnspython==2.8.0
 
 # ---------------------------------------------------------
-# DATA MANIPULATION
-# pandas: The core data manipulation library in Python.
-#   Provides DataFrame — a table-like structure perfect
-#   for loading CSVs, inspecting columns, cleaning data,
-#   and feature engineering. Used throughout every phase.
-# numpy: Numerical computing foundation.
-#   Pandas is built on NumPy. We use it directly for
-#   array operations, mathematical computations, and
-#   handling numerical data in the ML pipeline.
-# openpyxl: Needed if the Kaggle dataset is in .xlsx format.
-#   Pandas uses this under the hood to read Excel files.
+# DATA MANIPULATION (cp314 wheels confirmed on PyPI)
+# numpy 2.3.1 was yanked; 2.5.2 is the latest stable cp314 wheel
 # ---------------------------------------------------------
-pandas==2.2.2
-numpy==1.26.4
-openpyxl==3.1.4
-
+pandas==3.0.5
+numpy==2.5.2
+openpyxl==3.1.5
 
 # ---------------------------------------------------------
-# DATA VISUALIZATION
-# matplotlib: The foundational Python plotting library.
-#   Produces static charts (bar, line, scatter, histogram).
-#   Used directly and also as the backend for seaborn.
-# seaborn: Statistical data visualization built on matplotlib.
-#   Makes it much easier to produce attractive, informative
-#   statistical graphics (heatmaps, count plots, box plots)
-#   with far less code than raw matplotlib.
+# DATA VISUALIZATION (cp314 wheels confirmed on PyPI)
 # ---------------------------------------------------------
-matplotlib==3.9.0
+matplotlib==3.11.1
 seaborn==0.13.2
 
-
 # ---------------------------------------------------------
-# MACHINE LEARNING & NLP
-# scikit-learn: The standard Python ML library.
-#   We use it specifically for:
-#     - TfidfVectorizer: Converts text into TF-IDF vectors
-#     - cosine_similarity: Measures similarity between vectors
-#     - train_test_split, metrics: For evaluation
-#   We are NOT using it to train a classifier — we're using
-#   its NLP and similarity utilities for recommendation.
-# nltk: Natural Language Toolkit.
-#   Provides: tokenization, stop words, lemmatization (WordNet).
-#   We use it in the NLP preprocessing pipeline to clean
-#   text before feeding it into TF-IDF.
+# MACHINE LEARNING & NLP (cp314 wheels confirmed on PyPI)
 # ---------------------------------------------------------
-scikit-learn==1.5.0
-nltk==3.8.1
-
+scikit-learn==1.9.0
+nltk==3.9.1
 
 # ---------------------------------------------------------
 # UTILITIES
-# tqdm: Progress bars for loops.
-#   When processing 3400 schemes or building TF-IDF matrices,
-#   a progress bar lets you know the pipeline is alive.
-# Jinja2: HTML templating engine.
-#   Flask uses Jinja2 to render .html templates with dynamic
-#   Python data. It comes with Flask but we pin it explicitly
-#   for reproducibility.
-# Werkzeug: Flask's underlying WSGI utility library.
-#   Handles routing, request/response objects, security
-#   helpers. Also comes with Flask — pinned for stability.
 # ---------------------------------------------------------
-tqdm==4.66.4
-Jinja2==3.1.4
-Werkzeug==3.0.3
-
+tqdm==4.67.1
 
 # ---------------------------------------------------------
 # JUPYTER (for notebooks in /notebooks/)
-# jupyter: The notebook interface for Phase 2-9 exploration.
-#   All our EDA, preprocessing experiments, and NLP work
-#   will be done in .ipynb notebooks before we integrate
-#   the final logic into Python modules under /src/.
-# ipykernel: Makes your virtual environment available as
-#   a selectable kernel inside Jupyter notebooks.
+# ipykernel makes the venv available as a Jupyter kernel.
 # ---------------------------------------------------------
-jupyter==1.0.0
-ipykernel==6.29.4
-
-
-# ---------------------------------------------------------
-# FUTURE PHASES (commented out until needed)
-# Uncomment and install when the corresponding phase begins.
-# This keeps the current install lean and fast.
-#
-# Phase 14 — RAG Assistant:
-# sentence-transformers==3.0.1   # Text embeddings for RAG
-# faiss-cpu==1.8.0               # Local vector similarity search
-# openai==1.30.5                 # LLM API (if using OpenAI)
-# langchain==0.2.5               # RAG orchestration framework
-# tiktoken==0.7.0                # Token counting for OpenAI
-#
-# Phase 16 — Deployment:
-# gunicorn==22.0.0               # Production WSGI server (Linux)
-# waitress==3.0.0                # Production WSGI server (Windows)
-# ---------------------------------------------------------
+jupyter==1.1.0
+ipykernel==6.29.5
