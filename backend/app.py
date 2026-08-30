@@ -24,7 +24,8 @@ Environment variables:
 """
 
 import os
-from flask import Flask, render_template
+from flask import Flask, render_template, jsonify
+from flask_cors import CORS
 from dotenv import load_dotenv
 
 # ---------------------------------------------------------
@@ -35,7 +36,10 @@ from dotenv import load_dotenv
 # If .env doesn't exist (e.g. in production where env vars
 # are set by the server), load_dotenv() silently does nothing.
 # ---------------------------------------------------------
-load_dotenv()
+# override=True ensures the .env values take effect even if the variable
+# was already set in the shell environment (important for the Flask
+# debug reloader, which re-imports the module in the same process).
+load_dotenv(override=True)
 
 
 def create_app():
@@ -80,20 +84,38 @@ def create_app():
     app.config["DEBUG"] = os.getenv("FLASK_DEBUG", "1") == "1"
 
     # ---------------------------------------------------------
-    # Register Blueprints
-    # A Blueprint is Flask's way of organizing routes into
-    # separate modules. Instead of defining all routes in app.py,
-    # we group them logically:
-    #   main       → home, about
-    #   recommendation → profile form, results
-    #   schemes    → scheme detail pages
+    # CORS (Cross-Origin Resource Sharing)
+    # -------------------------------------------------------
+    # In local development the Next.js frontend runs on
+    # http://localhost:3000 while Flask runs on :5000.
+    # Browsers block cross-origin requests unless the server
+    # explicitly allows them via the Access-Control-Allow-Origin
+    # response header.
     #
-    # Blueprints are registered here and defined in backend/routes/.
-    # We import them inside the function to avoid circular imports.
-    # (Blueprints often import from services, services import from
-    # src/ — keeping imports local prevents import order issues.)
+    # flask-cors handles this automatically.
+    #
+    # FRONTEND_ORIGIN in .env controls which origin is allowed.
+    # Default: http://localhost:3000  (safe for local dev only).
+    #
+    # In production set FRONTEND_ORIGIN to your real domain, e.g.:
+    #   FRONTEND_ORIGIN=https://schemegenie.vercel.app
     # ---------------------------------------------------------
-    # Phase 11: Uncomment these as routes are built
+    frontend_origin = os.getenv("FRONTEND_ORIGIN", "http://localhost:3000")
+    # Support comma-separated list of origins (e.g. localhost:3000,localhost:3001)
+    origins = [o.strip() for o in frontend_origin.split(",") if o.strip()]
+    CORS(
+        app,
+        resources={r"/api/*": {"origins": origins}},
+        supports_credentials=False,
+    )
+
+    # ---------------------------------------------------------
+    # Register Blueprints
+    # ---------------------------------------------------------
+    from backend.routes.api import api_bp
+    app.register_blueprint(api_bp, url_prefix="/api")
+
+    # Phase 11+: uncomment as routes are built
     # from backend.routes.main import main_bp
     # from backend.routes.recommendation import recommendation_bp
     # from backend.routes.schemes import schemes_bp
