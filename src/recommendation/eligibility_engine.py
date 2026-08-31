@@ -95,6 +95,10 @@ class EligibilityEngine:
             self._check_taxpayer(text, user_profile),
             self._check_land(text, user_profile),
             self._check_registration(text, user_profile),
+            self._check_course(text, user_profile),
+	    self._check_study_year(text, user_profile),
+	    self._check_class_12_percentage(text, user_profile),
+	    self._check_other_scholarship(text, user_profile),
         ]:
             if check is not None:
                 checks.append(check)
@@ -116,10 +120,10 @@ class EligibilityEngine:
 
         if any(check.status == "MISMATCH" for check in checks):
             overall_status = "MISMATCH"
-        elif all(check.status == "MATCH" for check in checks):
-            overall_status = "MATCH"
+        elif any(check.status == "UNKNOWN" for check in checks):
+            overall_status = "NEEDS_VERIFICATION"
         else:
-            overall_status = "UNKNOWN"
+            overall_status = "PRELIMINARY_MATCH"
 
         return EligibilityResult(
             status=overall_status,
@@ -253,11 +257,12 @@ class EligibilityEngine:
             return None
 
         residence_terms = [
-            "resident",
-            "reside",
-            "native of",
-            "permanent resident",
-            "belong to",
+           "resident",
+    	   "reside",
+           "native of",
+   	   "permanent resident",
+  	   "belong to",
+	   "domicile",
         ]
 
         if not any(term in text for term in residence_terms):
@@ -589,3 +594,156 @@ class EligibilityEngine:
             "MISMATCH",
             "Scheme contains a registration/membership requirement.",
         )
+    # ---------------------------------------------------------
+    # COURSE
+    # ---------------------------------------------------------
+
+    def _check_course(self, text, profile):
+
+        course = profile.get("course")
+
+        if not course:
+            return None
+
+        course = str(course).lower()
+
+        course_terms = {
+            "b.e.": ["b.e.", "b.e ", "bachelor of engineering"],
+            "b.tech": ["b.tech", "b.tech.", "bachelor of technology"],
+            "engineering": [
+                "engineering college",
+                "engineering course",
+                "engineering degree",
+            ],
+        }
+
+        terms = course_terms.get(course)
+
+        if not terms:
+            return None
+
+        if any(term in text for term in terms):
+            return EligibilityCheck(
+                "course",
+                "MATCH",
+                f"Scheme contains a {course} course requirement.",
+            )
+
+        return EligibilityCheck(
+            "course",
+            "MISMATCH",
+            f"Scheme does not contain the required {course} course.",
+        )
+
+    # ---------------------------------------------------------
+    # STUDY YEAR
+    # ---------------------------------------------------------
+
+    def _check_study_year(self, text, profile):
+
+        study_year = profile.get("study_year")
+
+        if study_year is None:
+            return None
+
+        if not re.search(
+            r"\bfirst[- ]year\b|\b1st[- ]year\b",
+            text,
+        ):
+            return None
+
+        if study_year == 1:
+            return EligibilityCheck(
+                "study_year",
+                "MATCH",
+                "User is in the first year.",
+            )
+
+        return EligibilityCheck(
+            "study_year",
+            "MISMATCH",
+            "Scheme requires a first-year student.",
+        )
+
+    # ---------------------------------------------------------
+    # CLASS 12 PERCENTAGE
+    # ---------------------------------------------------------
+
+    def _check_class_12_percentage(self, text, profile):
+
+        percentage = profile.get("class_12_percentage")
+
+        if percentage is None:
+            return None
+
+        patterns = [
+            r"at least\s+(\d+(?:\.\d+)?)\s*%",
+            r"minimum\s+(\d+(?:\.\d+)?)\s*%",
+            r"(\d+(?:\.\d+)?)\s*%\s*marks",
+        ]
+
+        for pattern in patterns:
+
+            match = re.search(pattern, text)
+
+            if match:
+                required = float(match.group(1))
+
+                if percentage >= required:
+                    return EligibilityCheck(
+                        "class_12_percentage",
+                        "MATCH",
+                        (
+                            f"Class 12 percentage {percentage}% "
+                            f"meets the minimum {required}%."
+                        ),
+                    )
+
+                return EligibilityCheck(
+                    "class_12_percentage",
+                    "MISMATCH",
+                    (
+                        f"Class 12 percentage {percentage}% "
+                        f"is below the required {required}%."
+                    ),
+                )
+
+        return None
+
+    # ---------------------------------------------------------
+    # OTHER SCHOLARSHIP
+    # ---------------------------------------------------------
+
+    def _check_other_scholarship(self, text, profile):
+
+        receives_other = profile.get(
+            "receives_other_scholarship"
+        )
+
+        if receives_other is None:
+            return None
+
+        scholarship_terms = [
+            "other scholarship",
+            "other scholarships",
+            "any other scholarship",
+        ]
+
+        if not any(term in text for term in scholarship_terms):
+            return None
+
+        if "must not be receiving" in text:
+            if not receives_other:
+                return EligibilityCheck(
+                    "other_scholarship",
+                    "MATCH",
+                    "User is not receiving another scholarship.",
+                )
+
+            return EligibilityCheck(
+                "other_scholarship",
+                "MISMATCH",
+                "Scheme does not allow another scholarship.",
+            )
+
+        return None
